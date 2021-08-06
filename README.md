@@ -12,4 +12,4 @@ To use this script you will need the following:
 
 You can modify the script to hardcode your token and group_id but if you don't need to do this you can execute the script in the following way:
 
-* python gitlab_group_cloner.py <TOKEN> <GROUD_ID>
+* python gitlab_group_cloner.py <API_TOKEN> <GROUD_ID>
