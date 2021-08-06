@@ -4,9 +4,9 @@ This script is used to fetch projects under a group in gitlab and clone all the 
 
 To use this script you will need the following:
 
-* 1. A Gitlab token with both api_read & read_repository access
-* 2. Your group_id from your gitlab group
-* 3. Pip modules: requests, gitpython
+* A Gitlab token with both api_read & read_repository access
+* Your group_id from your gitlab group
+* Pip modules: requests, gitpython
 
 ## Running the script
 
