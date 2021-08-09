@@ -44,10 +44,7 @@ def cloneGroupProjects():
     for p in gitlabGroupProjectLink:
         currentRepoName = lower(gitlabGroupProjectName[count])
         filePath = directoryPath / currentRepoName
-
         pathExists = os.path.exists(os.path.abspath(filePath))
-        print(os.path.abspath(currentRepoName))
-        print(pathExists)
         
         # handles repository updating
         if(pathExists):
