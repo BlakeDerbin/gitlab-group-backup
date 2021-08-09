@@ -13,6 +13,10 @@ groupID = sys.argv[2]
 cloneBaseURL = f'https://oauth2:{token}@gitlab.com/'
 apiBaseURL = f'http://gitlab.com/api/v4/groups/{groupID}/projects?private_token={token}'
 
+backupPath = f'gitlab_{groupID}_backups'
+parentPath = Path.cwd()
+directoryPath = os.path.join(parentPath, backupPath)
+
 gitlabGroupProjectName = []
 gitlabGroupProjectLink = []
 
@@ -26,24 +30,29 @@ def handleRemoveReadonly(func, path, exc):
   else:
       raise
 
+def makeDir(path_in):
+    pathExists = os.path.exists(path_in)
+    if (pathExists == False):
+        os.mkdir(path_in)
+        print(f"directory created: {path_in}")
+
 def fetchGroupProjects():
     request = requests.get(apiBaseURL)
     data = json.loads(request.text)
     count = 0
+
     while count < len(data):
         gitlabGroupProjectName.append(data[count]['name'])
         gitlabGroupProjectLink.append(data[count]['http_url_to_repo'])
         count += 1
     
-    cloneGroupProjects()
 
 def cloneGroupProjects():
     count = 0
-    directoryPath = Path.cwd()
 
     for p in gitlabGroupProjectLink:
         currentRepoName = gitlabGroupProjectName[count]
-        filePath = directoryPath / currentRepoName.lower()
+        filePath = parentPath / backupPath / currentRepoName.lower()
         pathExists = os.path.exists(os.path.abspath(filePath))
         
         # handles repository updating
@@ -70,7 +79,10 @@ def cloneGroupProjects():
         count += 1
 
 try:
+    # check backup directory exists
+    makeDir(directoryPath)
     fetchGroupProjects()
+    cloneGroupProjects()
 except:
     print("Ensure that you're running the script with the right arguments \n")
     print("gitlab_group_cloner.py <API_TOKEN> <GROUP_ID> \n")
