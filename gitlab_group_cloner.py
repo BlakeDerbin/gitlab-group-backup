@@ -17,6 +17,8 @@ gitlabGroupProjectName = []
 gitlabGroupProjectLink = []
 
 def handleRemoveReadonly(func, path, exc):
+  # Use the command below with this function if you want to remove the repo instead of pull --rebase
+  # shutil.rmtree(file_path, ignore_errors=False, onerror=handleRemoveReadonly)
   excvalue = exc[1]
   if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
       os.chmod(path, stat.S_IRWXU| stat.S_IRWXG| stat.S_IRWXO) # 0777
@@ -39,17 +41,32 @@ def fetchGroupProjects():
 def cloneGroupProjects():
     count = 0
     directoryPath = Path.cwd()
+
     for p in gitlabGroupProjectLink:
         file_path = directoryPath / gitlabGroupProjectName[count]
+
+        # handles repository updating
         if(file_path.exists()):
-            shutil.rmtree(file_path, ignore_errors=False, onerror=handleRemoveReadonly)
-            print(f"removed repo: {gitlabGroupProjectName[count]}")
+            os.chdir(file_path)
+            gitStatus = git.Git().status("-uno")
+
+            if("up to date" not in gitStatus):
+                git.Git().pull("-r", "--autostash")
+                print(f"pulled repo: {gitlabGroupProjectName[count]}")
+            else:
+                print(f"repo up to date: {gitlabGroupProjectName[count]}\nno new changes pulled")
+
+        # handles repository cloning
         if(file_path.exists() == False):
             p.split("https://gitlab.com/")
-            print(p)
             git.Git().clone(cloneBaseURL + p.split("https://gitlab.com/")[1])
             print(f"cloned repo: {gitlabGroupProjectName[count]}")
+
         count += 1
 
 
-fetchGroupProjects()
+try:
+    fetchGroupProjects()
+except:
+    print("Ensure that you're running the script with the right arguments \n")
+    print("gitlab_group_cloner.py <API_TOKEN> <GROUP_ID> \n")
