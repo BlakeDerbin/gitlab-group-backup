@@ -30,11 +30,13 @@ def handleRemoveReadonly(func, path, exc):
   else:
       raise
 
+
 def makeDir(path_in):
     pathExists = os.path.exists(path_in)
     if (pathExists == False):
         os.mkdir(path_in)
         print(f"directory created: {path_in}")
+
 
 def fetchGroupProjects():
     request = requests.get(apiBaseURL)
@@ -72,11 +74,11 @@ def cloneGroupProjects():
         # handles repository cloning
         if(pathExists == False):
             os.chdir(directoryPath)
-            p.split("https://gitlab.com/")
             git.Git().clone(cloneBaseURL + p.split("https://gitlab.com/")[1])
             print(f"cloned repo: {currentRepoName}")
 
         count += 1
+
 
 try:
     # check backup directory exists
