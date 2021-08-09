@@ -5,7 +5,7 @@ from pathlib import Path
 ### For this script to you will need the folowing ###
 # 1. A Gitlab token with both api_read & read_repository access
 # 2. Your group_id from your gitlab group
-# 3. Pip modules: requests, gitpython
+# 3. Pip modules: requests, gitpython, pathlib
 
 token = sys.argv[1]
 groupID = sys.argv[2]
@@ -18,7 +18,7 @@ gitlabGroupProjectLink = []
 
 def handleRemoveReadonly(func, path, exc):
   # Use the command below with this function if you want to remove the repo instead of pull --rebase
-  # shutil.rmtree(file_path, ignore_errors=False, onerror=handleRemoveReadonly)
+  # shutil.rmtree(filePath, ignore_errors=False, onerror=handleRemoveReadonly)
   excvalue = exc[1]
   if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
       os.chmod(path, stat.S_IRWXU| stat.S_IRWXG| stat.S_IRWXO) # 0777
@@ -30,7 +30,6 @@ def fetchGroupProjects():
     request = requests.get(apiBaseURL)
     data = json.loads(request.text)
     count = 0
-
     while count < len(data):
         gitlabGroupProjectName.append(data[count]['name'])
         gitlabGroupProjectLink.append(data[count]['http_url_to_repo'])
@@ -43,27 +42,35 @@ def cloneGroupProjects():
     directoryPath = Path.cwd()
 
     for p in gitlabGroupProjectLink:
-        file_path = directoryPath / gitlabGroupProjectName[count]
+        currentRepoName = lower(gitlabGroupProjectName[count])
+        filePath = directoryPath / currentRepoName
 
+        pathExists = os.path.exists(os.path.abspath(filePath))
+        print(os.path.abspath(currentRepoName))
+        print(pathExists)
+        
         # handles repository updating
-        if(file_path.exists()):
-            os.chdir(file_path)
+        if(pathExists):
+            os.chdir(filePath)
+            git.Git().remote('update')
             gitStatus = git.Git().status("-uno")
 
             if("up to date" not in gitStatus):
                 git.Git().pull("-r", "--autostash")
-                print(f"pulled repo: {gitlabGroupProjectName[count]}")
+                print(f"pulled repo: {currentRepoName}")
+                os.chdir(directoryPath)
             else:
-                print(f"repo up to date: {gitlabGroupProjectName[count]}\nno new changes pulled")
+                print(f"repo up to date: {currentRepoName}\nno new changes pulled")
+                os.chdir(directoryPath)
 
         # handles repository cloning
-        if(file_path.exists() == False):
+        if(pathExists == False):
+            os.chdir(directoryPath)
             p.split("https://gitlab.com/")
             git.Git().clone(cloneBaseURL + p.split("https://gitlab.com/")[1])
-            print(f"cloned repo: {gitlabGroupProjectName[count]}")
+            print(f"cloned repo: {currentRepoName}")
 
         count += 1
-
 
 try:
     fetchGroupProjects()
