@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 
 # BD: 9/8/21
 # This bash script will load the modules and install pip packages to run the python script
