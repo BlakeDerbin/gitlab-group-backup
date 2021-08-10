@@ -23,6 +23,8 @@ backupPath = f'gitlab_{groupID}_backups'
 parentPath = (args.directory, Path.cwd())[args.directory is None]
 directoryPath = os.path.join(parentPath, backupPath)
 
+print(directoryPath)
+
 
 gitlabGroupProjectName = []
 gitlabGroupProjectLink = []
@@ -43,7 +45,7 @@ def handleRemoveReadonly(func, path, exc):
 def makeDir(path_in):
     pathExists = os.path.exists(path_in)
     if not pathExists:
-        os.mkdir(path_in)
+        os.makedirs(path_in)
         print(f"directory created: {path_in}")
 
 
@@ -90,6 +92,9 @@ def cloneGroupProjects():
 
         count += 1
 
+fetchGroupProjects()
+makeDir(directoryPath)
+cloneGroupProjects()
 
 try:
     fetchGroupProjects()
