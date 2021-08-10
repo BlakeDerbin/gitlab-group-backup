@@ -1,5 +1,5 @@
 import requests, json, git, sys
-import errno, stat, os, shutil
+import errno, stat, os, shutil, argparse
 from pathlib import Path
 
 ### For this script to work you will need the folowing ###
@@ -7,18 +7,27 @@ from pathlib import Path
 # 2. Your group_id from your gitlab group
 # 3. Pip modules: requests, gitpython, pathlib
 
-token = sys.argv[1]
-groupID = sys.argv[2]
+parser = argparse.ArgumentParser(description="This script will clone projects from a group and its subgroups from Gitlab")
+parser.add_argument('-t', '--token', type=str, help='Gitlab API token')
+parser.add_argument('-g', '--group', type=int, help='Gitlab groud ID')
+parser.add_argument('-d', '--directory', type=str, help='Backup directory path for the gitlab group (OPTIONAL)')
+args = parser.parse_args()
+
+token = args.token
+groupID = args.group
 
 cloneBaseURL = f'https://oauth2:{token}@gitlab.com/'
 apiBaseURL = f'http://gitlab.com/api/v4/groups/{groupID}/projects?private_token={token}&include_subgroups=true'
 
 backupPath = f'gitlab_{groupID}_backups'
-parentPath = Path.cwd()
+parentPath = (args.directory, Path.cwd())[args.directory is None]
 directoryPath = os.path.join(parentPath, backupPath)
+
 
 gitlabGroupProjectName = []
 gitlabGroupProjectLink = []
+gitlabGroupPathNamespace = []
+
 
 def handleRemoveReadonly(func, path, exc):
   # Use the command below with this function if you want to remove the repo instead of pull --rebase
@@ -46,6 +55,7 @@ def fetchGroupProjects():
     while count < len(data):
         gitlabGroupProjectName.append(data[count]['name'])
         gitlabGroupProjectLink.append(data[count]['http_url_to_repo'])
+        gitlabGroupPathNamespace.append(data[count]['path_with_namespace'].split('/',1))
         count += 1
     
 
@@ -54,7 +64,7 @@ def cloneGroupProjects():
 
     for p in gitlabGroupProjectLink:
         currentRepoName = gitlabGroupProjectName[count]
-        filePath = parentPath / backupPath / currentRepoName.lower()
+        filePath = os.path.join(directoryPath, gitlabGroupPathNamespace[count][1])
         pathExists = os.path.exists(os.path.abspath(filePath))
         
         # handles repository updating
@@ -74,17 +84,18 @@ def cloneGroupProjects():
         # handles repository cloning
         if not pathExists:
             os.chdir(directoryPath)
-            git.Git().clone(cloneBaseURL + p.split("https://gitlab.com/")[1])
+            git.Git().clone(cloneBaseURL + p.split("https://gitlab.com/")[1],
+                            os.path.join(directoryPath,gitlabGroupPathNamespace[count][1]))
             print(f"cloned repo: {currentRepoName}")
 
         count += 1
 
 
 try:
-    # check backup directory exists
-    makeDir(directoryPath)
     fetchGroupProjects()
+    makeDir(directoryPath)
     cloneGroupProjects()
 except:
-    print("ERROR: Ensure that you're running the script with the right arguments \n")
-    print("gitlab_group_cloner.py <API_TOKEN> <GROUP_ID> \n")
+    print(
+        "ERROR: Ensure that you're running the script with the right arguments \n\n"
+        "gitlab_group_cloner.py -t <API_TOKEN> -g <GROUP_ID> -d <DIRECTORY_PATH> (OPTIONAL) \n")
