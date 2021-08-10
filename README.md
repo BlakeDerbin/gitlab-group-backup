@@ -18,10 +18,10 @@ You can modify the script to inculde your token and group_id if you don't want t
 
 An example of how you would execute this script:
 
-* python gitlab_group_cloner.py -t <API_TOKEN> -g <GROUP_ID> -d <DIRECTORY> (OPTIONAL)
+* python gitlab_group_cloner.py -t <API_TOKEN> -g <GROUP_ID> -d <BACKUP_DIRECTORY> (OPTIONAL)
 
 ## Using the BASH script
 
 This was created mainly to load modules before executing the script and is used in a simlar way to the python script, you will also need the python script in the same directory as the bash script:
 
-* bash gitlab_group_cloner.sh <API_TOKEN> <GROUP_ID> <DIRECTORY> (OPTIONAL)
+* bash gitlab_group_cloner.sh <API_TOKEN> <GROUP_ID> <BACKUP_DIRECTORY> (OPTIONAL)
