@@ -23,8 +23,6 @@ backupPath = f'gitlab_{groupID}_backups'
 parentPath = (args.directory, Path.cwd())[args.directory is None]
 directoryPath = os.path.join(parentPath, backupPath)
 
-print(directoryPath)
-
 
 gitlabGroupProjectName = []
 gitlabGroupProjectLink = []
@@ -68,7 +66,7 @@ def cloneGroupProjects():
         currentRepoName = gitlabGroupProjectName[count]
         filePath = os.path.join(directoryPath, gitlabGroupPathNamespace[count][1])
         pathExists = os.path.exists(os.path.abspath(filePath))
-        
+
         # handles repository updating
         if pathExists:
             os.chdir(filePath)
@@ -92,9 +90,6 @@ def cloneGroupProjects():
 
         count += 1
 
-fetchGroupProjects()
-makeDir(directoryPath)
-cloneGroupProjects()
 
 try:
     fetchGroupProjects()
