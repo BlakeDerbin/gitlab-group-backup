@@ -7,7 +7,7 @@
 # bash gitlab_group_cloner.sh <TOKEN_ID> <GROUP_ID> <DIRECTORY> (OPTIONAL)
 
 module load aarnetproxy python36
-python -m pip install requests gitpython > /dev/null
+python -m pip --disable-pip-version-check install requests gitpython > /dev/null
 
 if [ -z "$3" ]
 then
