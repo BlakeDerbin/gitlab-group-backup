@@ -11,25 +11,27 @@ from datetime import date
 parser = argparse.ArgumentParser(description="This script will clone projects from a group and its subgroups from Gitlab")
 parser.add_argument('-t', '--token', type=str, help='Gitlab API token')
 parser.add_argument('-g', '--group', type=int, help='Gitlab group ID')
-parser.add_argument('-d', '--directory', type=str, help='Backup directory path for the gitlab group (OPTIONAL)')
+parser.add_argument('-d', '--directory', type=str, help='Backup directory path for the Gitlab group (OPTIONAL)')
+parser.add_argument('-v', '--apiversion', type=str, help='Change the api version used for Gitlab API')
+parser.add_argument('-e', '--export', type=str, help="Path to export gitlab backup tarfile to")
 user_args = parser.parse_args()
 
 auth_token = user_args.token
 group_id = user_args.group
+api_version = (user_args.apiversion, 'v4')[user_args.apiversion is None]
 
 clone_base_url = f'https://oauth2:{user_args.token}@gitlab.com/'
-api_version = 'v4'
 api_url = f'https://gitlab.com/api/{api_version}' 
 api_group_projects = f'{api_url}/groups/{group_id}/projects?private_token={auth_token}&include_subgroups=true'
 
 backup_path = f'gitlab_{group_id}_backups'
 parent_path = (user_args.directory, Path.cwd())[user_args.directory is None]
 directory_path = os.path.join(parent_path, backup_path)
+tarfile_path = (user_args.export, parent_path)[user_args.export is None]
 log_file = open("backup_log.txt", "w+")
 
 gitlab_group_project_link = []
 gitlab_group_path_namespace = []
-
 
 def handle_remove_readonly(func, path, exc):
     # Use the command below with this function if you want to remove the repo instead of pull --rebase
@@ -115,27 +117,28 @@ def backup_group_projects():
 # add all repositories to tar file
 def backup_group_projects_to_tar():
     try:
-        os.chdir(parent_path)
+        os.chdir(tarfile_path)
         date_today = date.today()
         tar_filename = f'gitlab_{group_id}_backup_{date_today.strftime("%d%m%Y")}.tgz'
-        tar_filepath = os.path.join(parent_path, tar_filename)
+        tar_file = os.path.join(tarfile_path, tar_filename)
 
-        tar_file_exists = os.path.exists(os.path.abspath(tar_filepath))
+        tar_file_exists = os.path.exists(os.path.abspath(tar_file))
         directory_path_exists = os.path.exists(os.path.abspath(directory_path))
 
         if directory_path_exists:
             if tar_file_exists:
                 log_file.write(f"{tar_filename} exists, no new tarfile will be generated\n")
             else:
-                tar_backup = tarfile.open(tar_filename, 'w:gz')
-                tar_backup.add(f"{directory_path}", recursive=True)
-                log_file.write(f"Created tar backup file of repositories: {tar_filename}\n")
+                tar_backup = tarfile.open(tar_filename, 'w|gz')
+                tar_backup.add(directory_path, recursive=True, arcname=backup_path)
+                tar_backup.close()
+                log_file.write(f"Created tar backup file of repositories at: {tar_file}\n")
         else:
             log_file.write("backup directory doesn't exist, exiting script...\n")
             log_file.close()
             sys.exit(1)
     except:
-        log_file.write(f"Error has occured adding backups to tar file: {tar_filename}, exiting...")
+        log_file.write(f"Error has occured adding backups to tar file, exiting...")
         log_file.close()
         sys.exit(1)
 
