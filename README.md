@@ -21,6 +21,7 @@ Argument | Use
 -d or --directory | the directory where you wish to store the backups, if not specified the directory will be the scripts working directory
 -e or --export | Sets the directory where the tarfile exports, if not specified will be the scripts working directory 
 -v or --apiversion | Sets the Gitlab API version to use, v4 is set if not specififed
+-r or --remove | Removes the backup directory created by the script
 
 An example of how you would execute this script:
 ```
