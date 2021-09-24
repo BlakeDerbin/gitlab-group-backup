@@ -22,6 +22,7 @@ Argument | Use
 -e or --export | Sets the directory where the tarfile exports, if not specified will be the scripts working directory 
 -v or --apiversion | Sets the Gitlab API version to use, v4 is set if not specififed
 -r or --remove | Removes the backup directory created by the script
+-p or --period | Specifies the amount of days to keep tarfiles backups for
 
 An example of how you would execute this script:
 ```
