@@ -118,7 +118,6 @@ def backup_group_projects():
                 else:
                     log_file.write(f"repository up to date: {repository_name}\n")
                     os.chdir(directory_path)
-                    continue
 
             # handles repository cloning
             if not path_exists:
