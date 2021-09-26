@@ -12,7 +12,7 @@ To use get started using this script you will need the following:
 
 ## Running the script
 
-You can modify the script to inculde your token and group_id if you don't want to provide it as an argument, if you want to use the script as is these are the following arguments:
+There a 2 options for running this script, you can either use the arguments below when running the script or modify the config.yaml file to run the script without using arguments.
 
 Argument | Use
 ---------|---------
@@ -22,9 +22,9 @@ Argument | Use
 -e or --export | Sets the directory where the tarfile exports, if not specified will be the scripts working directory 
 -v or --apiversion | Sets the Gitlab API version to use, v4 is set if not specififed
 -r or --remove | Removes the backup directory created by the script
--p or --period | Specifies the amount of days to keep tarfiles backups for
+-p or --period | Specifies the amount of days to keep tarfiles backups for (default is 182 days)
 
-An example of how you would execute this script:
+An example of how you would execute this script with arguments:
 ```
 python3 gitlab_group_repo_backup.py -t <API_TOKEN> -g <GROUP_ID> -d <BACKUP_DIRECTORY> -e <TARFILE_DIRECTORY> -v <API_VERSION>
 ```

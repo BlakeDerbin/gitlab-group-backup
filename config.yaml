@@ -1,0 +1,18 @@
+﻿gitlab:
+  api_url: 'https://gitlab.com/api/'
+  api_version: 'v4'
+  auth_token: ''
+  group_id: ''
+  
+backup:
+  # If no directory is specified for the backups it will perform create a backup folder in the working directory
+  # of the script. 
+  # If you don't want to store the cloned repos and delete them after backup change 'remove_directory' to False
+  directory: '/home/user'
+  remove_directory: False
+  logfile_directory: '/home/user/backup_log.txt'
+  # zip file backups
+  # If don't want to generate all repos as a zip change 'generate_zip_export' to False
+  generate_zip_export: True
+  zip_export_directory: '/home/user'
+  zip_storage_days: 182
