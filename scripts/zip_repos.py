@@ -69,8 +69,8 @@ class ZipRepositories:
                             tarfile_list.append(file)
 
                     if len(tarfile_list) > self.zip_storage_days:
-                        log_file.write(f"Removing backup tarfiles older than {zip_storage_days} days\n")
-                        ZipRepositories.remove_files_past_days(self.zip_path, zip_file_extension)
+                        log_file.write(f"Removing backup tarfiles older than {self.zip_storage_days} days\n")
+                        ZipRepositories.remove_files_past_days(self, self.zip_path, zip_file_extension)
                     log_file.close()
                 else:
                     tar_backup = tarfile.open(zip_filename, 'w|gz')
@@ -80,7 +80,6 @@ class ZipRepositories:
                     log_file.close()
 
         except OSError as e:
-            print(e)
             log_file = open(self.log_file_path, 'a+')
             log_file.write(f"Error has occured adding backups to tar file, exiting...\nError: {e}\n")
             log_file.close()
