@@ -4,9 +4,6 @@ import git
 import sys
 import os
 from datetime import datetime
-from .gitlab_config import config_yaml
-
-config = config_yaml()
 
 
 class GitlabBackup:

@@ -1,8 +1,11 @@
-import sys, tarfile, time
-import errno, stat, os, shutil, argparse, glob
+import sys
+import errno
+import stat
+import os
+import shutil
+import argparse
 from pathlib import Path
-from datetime import date
-from gitlab import gitlab, gitlab_config
+from scripts import gitlab, gitlab_config, zip_repos
 
 parser = argparse.ArgumentParser(
     description="This script will clone projects from a group and its subgroups from Gitlab")
@@ -39,6 +42,7 @@ if __name__ == '__main__':
                 [config['backup']['zip_export_directory'] is None]
                 )[user_args.export is None]
     zip_storage_days = (user_args.period, config['backup']['zip_storage_days'])[user_args.period is None]
+    zip_filename = f'gitlab_{group_id}'
 
     gitlab_backup = gitlab.GitlabBackup(auth_token, group_id, api_version, api_url, log_file_path)
     group_projects = gitlab_backup.fetch_group_projects()
@@ -61,6 +65,17 @@ if __name__ == '__main__':
 
     gitlab_backup.backup_group_repositories(directory_path, group_projects)
 
+    # handles zipping gitlab projects
+    gitlab_zip = zip_repos.ZipRepositories(
+        zip_filename,
+        generate_zip,
+        zip_path,
+        zip_storage_days,
+        log_file_path,
+        directory_path,
+        parent_path
+    )
+    gitlab_zip.backup_group_projects_to_tar()
 
     def remove_backup_directory():
         # Removes backup directory when the flag -r is used
@@ -74,7 +89,6 @@ if __name__ == '__main__':
             log_file.write(f"Can't delete backup directory\nError: {e}\n")
             log_file.close()
 
-
     def handle_remove_readonly(func, path, exc):
         # Handles removing directory if errors occur
         excvalue = exc[1]
@@ -84,80 +98,7 @@ if __name__ == '__main__':
         else:
             raise
 
-
-    def remove_files_past_days(path_in, file_type):
-        # Removes files past user_args.period number, removes older to newest
-        try:
-            file_list = []
-            file_list_modified = []
-
-            for file in os.listdir(path_in):
-                if file.lower().endswith(file_type.lower()):
-                    file_list.append(file)
-            oldest_backup = min(file_list, key=os.path.getctime)
-            if len(file_list) > zip_storage_days:
-                os.remove(os.path.abspath(oldest_backup))
-                time.sleep(0.1)
-
-            for files in os.listdir(path_in):
-                if files.lower().endswith(file_type.lower()):
-                    file_list_modified.append(files)
-            if len(file_list_modified) > zip_storage_days:
-                remove_files_past_days(path_in, file_type)
-
-        except OSError as e:
-            log_file = open(log_file_path, 'a+')
-            log_file.write(f"Error occured deleting log file past {zip_storage_days} days\nError: {e}\n")
-            log_file.close()
-
-
-    def backup_group_projects_to_tar():
-        # Adds all repositories to tar file
-        try:
-            if generate_zip:
-                os.chdir(zip_path)
-                date_today = date.today()
-                zip_filename = f'gitlab_{group_id}_backup_{date_today.strftime("%d%m%Y")}.tgz'
-                zip_file_extension = os.path.splitext(zip_filename)[1]
-                zip_file_path = os.path.join(zip_path, zip_filename)
-                zip_file_glob = glob.glob(f'gitlab_{group_id}_backup*{zip_file_extension}')
-                zip_file_exists = os.path.exists(os.path.abspath(zip_file_path))
-                log_file = open(log_file_path, 'a+')
-
-                if zip_file_exists and len(zip_file_glob) <= zip_storage_days:
-                    log_file.write(f"backup file {zip_filename} exists, exiting...\n")
-                    log_file.close()
-                elif len(zip_file_glob) > 0 and zip_storage_days > 0:
-                    tar_backup = tarfile.open(zip_filename, 'w|gz')
-                    tar_backup.add(directory_path, recursive=True, arcname=backup_path)
-                    tar_backup.close()
-                    log_file.write(f"Created tar backup file of repositories at: {zip_file_path}\n")
-                    tarfile_list = []
-
-                    for file in os.listdir(zip_path):
-                        if file.lower().endswith(zip_file_extension.lower()):
-                            tarfile_list.append(file)
-
-                    if len(tarfile_list) > zip_storage_days:
-                        log_file.write(f"Removing backup tarfiles older than {zip_storage_days} days\n")
-                        remove_files_past_days(zip_path, zip_file_extension)
-                    log_file.close()
-                else:
-                    tar_backup = tarfile.open(zip_filename, 'w|gz')
-                    tar_backup.add(directory_path, recursive=True, arcname=backup_path)
-                    tar_backup.close()
-                    log_file.write(f"Created tar backup file of repositories at: {zip_file_path}\n")
-                    log_file.close()
-
-        except OSError as e:
-            log_file = open(log_file_path, 'a+')
-            log_file.write(f"Error has occured adding backups to tar file, exiting...\nError: {e}\n")
-            log_file.close()
-            sys.exit(1)
-
-
     try:
-        backup_group_projects_to_tar()
         remove_backup_directory()
     except OSError as e:
         print(f"OS error has occured: \n\n{e}")
