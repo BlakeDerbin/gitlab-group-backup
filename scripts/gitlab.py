@@ -32,8 +32,9 @@ class GitlabBackup:
                     if key == 'path_with_namespace':
                         group_projects[1].append(data[index]['path_with_namespace'].split('/', 1))
 
+            group_name = data[0]['name_with_namespace'].split('/', 1)
             self.log_file.write(f"Successfully fetched projects for group ID: {self.group_id}\n\n")
-            return group_projects
+            return group_projects, group_name[0].replace(" ", "")
         except OSError as e:
             self.log_file.write(f"Unable to fetch group ID: {self.group_id} projects, exiting script...\nError: {e}\n")
             self.log_file.close()

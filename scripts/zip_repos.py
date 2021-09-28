@@ -34,7 +34,7 @@ class ZipRepositories:
                 if files.lower().endswith(file_type.lower()):
                     file_list_modified.append(files)
             if len(file_list_modified) > self.zip_storage_days:
-                ZipRepositories.remove_files_past_days(path_in, file_type)
+                ZipRepositories.remove_files_past_days(self, path_in, file_type)
 
         except OSError as e:
             log_file = open(self.log_file_path, 'a+')

@@ -28,19 +28,16 @@ if __name__ == '__main__':
     remove_repo_dir = (user_args.remove, config['backup']['remove_directory'])[user_args.remove is False]
     test = config['backup']['remove_directory']
 
-    backup_dir_name = f'gitlab_{group_id}_backups'
     parent_path = (user_args.directory,
                    (config['backup']['directory'], Path.cwd())
                    [config['backup']['directory'] is None]
                    )[user_args.directory is None]
-    backup_path = os.path.join(parent_path, backup_dir_name)
     generate_zip = config['backup']['generate_zip_export']
     zip_path = (user_args.export,
                 (config['backup']['zip_export_directory'], parent_path)
                 [config['backup']['zip_export_directory'] is None]
                 )[user_args.export is None]
     zip_storage_days = (user_args.period, config['backup']['zip_storage_days'])[user_args.period is None]
-    zip_filename = f'gitlab_{group_id}'
 
     def create_backup_directory(dir_in):
         # Creates backup directory
@@ -81,7 +78,11 @@ if __name__ == '__main__':
             raise
 
     gitlab_backup = gitlab.GitlabBackup(auth_token, group_id, api_version, api_url, log_file_path)
-    group_projects = gitlab_backup.fetch_group_projects()
+    group_projects, group_name = gitlab_backup.fetch_group_projects()
+
+    zip_filename = f'gitlab_{group_name.lower()}'
+    backup_dir_name = f'gitlab_{group_name.lower()}_backups'
+    backup_path = os.path.join(parent_path, backup_dir_name)
 
     create_backup_directory(backup_path)
 
