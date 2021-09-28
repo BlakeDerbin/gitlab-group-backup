@@ -1,8 +1,9 @@
 ﻿gitlab:
+  # If you want to use multiple group_ids use the seperated by commas '1234, 12345'
   api_url: 'https://gitlab.com/api/'
   api_version: 'v4'
   auth_token: ''
-  group_id: ''
+  group_ids: ''
   
 backup:
   # If no directory is specified for the backups it will perform create a backup folder in the working directory
@@ -11,8 +12,9 @@ backup:
   directory: '/home/user'
   remove_directory: False
   logfile_directory: '/home/user/backup_log.txt'
-  # zip file backups
+  # zip file backups:
   # If don't want to generate all repos as a zip change 'generate_zip_export' to False
+  # If you don't want a limit on zip storage days leave this blank or set as 0
   generate_zip_export: True
   zip_export_directory: '/home/user'
   zip_storage_days: 182

@@ -23,7 +23,7 @@ class GitlabBackup:
             request = requests.get(self.api_group_projects)
             data = json.loads(request.text)
             group_projects = [[], []]
-            self.log_file.write(f"\n[{date_now}] Starting backup for project repositories!\n\n")
+            self.log_file.write(f"\n[{date_now}] Starting backup for group ID: {self.group_id} repositories!\n\n")
 
             for index in range(len(data)):
                 for key in data[index]:
