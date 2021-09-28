@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 import json
 import git
 import sys
@@ -23,7 +23,7 @@ class GitlabBackup:
             request = requests.get(self.api_group_projects)
             data = json.loads(request.text)
             group_projects = [[], []]
-            self.log_file.write(f"\n[{date_now}] Starting backup for group ID: {self.group_id} repositories!\n\n")
+            self.log_file.write(f"\n[{date_now}] Starting backup for group ID: {self.group_id} repositories\n\n")
 
             for index in range(len(data)):
                 for key in data[index]:
@@ -56,12 +56,15 @@ class GitlabBackup:
                     git.Git().remote('update')
                     git_status = git.Git().status("-uno")
 
-                    if "up to date" not in git_status:
-                        git.Git().pull("-r", "--autostash")
-                        self.log_file.write(f"Pulled repository changes: {repository_name}\n")
+                    if "up to date" in git_status:
+                        self.log_file.write(f"Repository up to date: {repository_name}\n")
+                        os.chdir(directory_path)
+                    elif "No commits yet" in git_status:
+                        self.log_file.write(f"No commits in repository: {repository_name}\n")
                         os.chdir(directory_path)
                     else:
-                        self.log_file.write(f"repository up to date: {repository_name}\n")
+                        git.Git().pull("-r", "--autostash")
+                        self.log_file.write(f"Pulled repository changes: {repository_name}\n")
                         os.chdir(directory_path)
 
                 # handles repository cloning
@@ -69,7 +72,7 @@ class GitlabBackup:
                     os.chdir(directory_path)
                     git.Git().clone(self.clone_base_url + p.split("https://gitlab.com/")[1],
                                     os.path.join(directory_path, repository_name))
-                    self.log_file.write(f"cloned repository: {repository_name}\n")
+                    self.log_file.write(f"Cloned repository: {repository_name}\n")
 
                 count += 1
 
