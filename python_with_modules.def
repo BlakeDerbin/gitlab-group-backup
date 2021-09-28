@@ -1,0 +1,12 @@
+Bootstrap: docker
+from: python:3.9
+
+%post 
+    pip install --progress-bar off gitpython requests pyyaml
+
+%environment
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
+  export DEBIAN_FRONTEND="noninteractive"
+  export DEBCONF_NONINTERACTIVE_SEEN=true
+  export TZ="Australia/Brisbane"
