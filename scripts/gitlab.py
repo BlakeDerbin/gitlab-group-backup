@@ -4,6 +4,7 @@ import git
 import sys
 import os
 import tarfile
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -38,7 +39,7 @@ class GitlabBackup:
             self.log_file.write(f"Successfully fetched projects for group ID: {self.group_id}\n\n")
             return group_projects, group_name[0].replace(" ", "")
         except OSError as e:
-            self.log_file.write(f"Unable to fetch group ID: {self.group_id} projects, exiting script...\nError: {e}\n")
+            self.log_file.write(f"\nUnable to fetch group ID: {self.group_id} projects, exiting script...\nError: {e}\n")
             self.log_file.close()
             sys.exit(1)
 
@@ -82,7 +83,7 @@ class GitlabBackup:
             self.log_file.close()
 
         except OSError as e:
-            self.log_file.write(f"Unable to backup projects for group ID: {self.group_id}, exiting script...\nError: {e}\n")
+            self.log_file.write(f"\nUnable to backup projects for group ID: {self.group_id}, exiting script...\nError: {e}\n")
             self.log_file.close()
             sys.exit(1)
     
@@ -91,96 +92,99 @@ class GitlabExport():
     def __init__(self, group_export_dir, group_export_tarfile, logfile_dir):
         self.group_export_dir = group_export_dir
         self.group_export_tarfile = group_export_tarfile
-        #self.log_file = open(logfile_directory, 'a+')
+        self.log_file = open(logfile_dir, 'a+')
 
     def extract_zip(file_path, dir_name, output_path):
         # Used to export each project export out of group export tarfile
-        print(f"file-path: {file_path}")
-        print(f"name: {dir_name}")
-        with tarfile.open(file_path) as project_tar:
-            subdir_with_files = [
-                tarinfo for tarinfo in project_tar.getmembers()
-                if tarinfo.name.startswith(dir_name)
-            ]
-            project_tar.extractall(members=subdir_with_files)
+        try:
+            with tarfile.open(file_path) as project_tar:
+                subdir_with_files = [
+                    tarinfo for tarinfo in project_tar.getmembers()
+                    if tarinfo.name.startswith(dir_name)
+                ]
+                project_tar.extractall(members=subdir_with_files)
+        except OSError as e:
+            print(f"project export for tarfile: {file_path} FAILED\nERROR: {e}")
+            self.log_file.write(f"\nUnable to extract gitlab export tarfile\nError: {e}\n\n")
+            self.log_file.close()
+            sys.exit(1)
 
     def backup_group_export(self):
         # handles exporting project exports out of gitlab group export tarfile
-        os.chdir(self.group_export_dir)
-        export_list = []
+        try:
+            os.chdir(self.group_export_dir)
+            tar = tarfile.open(self.group_export_tarfile)
+            date_now = datetime.now().strftime("%d/%m/%Y - %I:%M %p")
+            self.log_file.write(f"\n[{date_now}] Starting gitlab group export from tarfile: {self.group_export_tarfile}\n\n")
 
-        tar = tarfile.open(self.group_export_tarfile)
-        # gets a list of tarfiles in the group export zip
-        for member in tar.getnames():
-            if 'tar.gz' in member:
-                export_list.append(member)
-                print(member)
+            # gets a list of tarfiles in the group export zip
+            export_list = [tar_dir for tar_dir in tar.getnames() if 'tar.gz' in tar_dir]
 
-        for export in export_list:
-            export_file_path = export.rsplit("/", 1)
-            export_path = export_file_path[0]
-            export_file = export_file_path[1]
-            full_path = f"{self.group_export_dir}/{export_file_path[0]}"
-            path_exists = os.path.exists(os.path.abspath(full_path))
+            for export in export_list:
+                export_path = (export.rsplit("/", 1))[0]
+                export_file = (export.rsplit("/", 1))[1]
+                full_path = f"{self.group_export_dir}/{export_path}"
+                path_exists = os.path.exists(os.path.abspath(full_path))
 
-            repo = export.rsplit("/", 2)
-            print(repo)
-            repository_name = repo[1]
-            repository_path = os.path.join(full_path, "repository")
-            print(repository_path)
-            repository_exists = os.path.exists(os.path.abspath(repository_path))
-            bundle = Path(f"{full_path}/project.bundle")
-            bundle_exists = bundle.is_file()
-            export_file = Path(f"{full_path}/export.tar.gz")
-            export_exists = export_file.is_file()
-            print(f"full path: {full_path}\n")
-            print(f"path exists: {path_exists}\nrepo dir exists: {repository_exists}\nbundle exists: {bundle_exists}\nexport exists: {export_exists}\n")
+                repository_name = (export.rsplit("/", 2))[1]
+                repository_path = os.path.join(full_path, "repository")
+                repository_exists = os.path.exists(os.path.abspath(repository_path))
 
-            if path_exists:
-                os.chdir(full_path)      
-                                
-                if repository_exists and bundle_exists:
-                    # handles repository updates
-                    os.chdir(repository_path)
-                    
-                    git.Git().remote('update')
-                    git_status = git.Git().status("-uno")
+                bundle_file = Path(f"{full_path}/project.bundle")
+                export_file = Path(f"{full_path}/export.tar.gz")
+                bundle_exists = bundle_file.is_file()
+                export_exists = export_file.is_file()
 
-                    if "up to date" in git_status:
-                        print(f"Repository up to date: {repository_name}\n")
-                        #os.chdir(export_dir)
-                    elif "No commits yet" in git_status:
-                        print(f"No commits in repository: {repository_name}\n")
-                        #os.chdir(directory_path)
+                if path_exists:
+                    os.chdir(full_path)      
+
+                    if repository_exists and bundle_exists:
+                        # handles repository updates
+                        os.chdir(repository_path)
+                        git.Git().remote('update')
+                        git_status = git.Git().status("-uno")
+
+                        if "up to date" in git_status:
+                            self.log_file.write(f"Repository up to date: {repository_name}\n")
+                        elif "No commits yet" in git_status:
+                            self.log_file.write(f"No commits in repository: {repository_name}\n")
+                        else:
+                            git.Git().pull("-r", "--autostash")
+                            self.log_file.write(f"Pulled repository changes: {repository_name}\n")
+
                     else:
-                        git.Git().pull("-r", "--autostash")
-                        print(f"Pulled repository changes: {repository_name}\n")
-                        #os.chdir(directory_path)
+                        # extracts and clones the project.bundle from a project export
+                        if bundle_exists:
+                            git.Git().clone(f"project.bundle", f"repository")
+                            self.log_file.write(f"Repository cloned: {repository_name}\n")
+                        elif not bundle_exists and not repository_exists and export_exists:
+                            GitlabExport.extract_zip(export_file, "./project", self.group_export_dir)
+                            git.Git().clone(f"project.bundle", f"repository")
+                            self.log_file.write(f"Repository cloned: {repository_name}\n")
+                        else:
+                            os.chdir(self.group_export_dir)
+                            GitlabExport.extract_zip(self.group_export_tarfile, export_path, self.group_export_dir)
+                            os.chdir(full_path)
+                            GitlabExport.extract_zip(export_file, "./project", self.group_export_dir)
+                            if os.path.isdir("repository"):
+                                shutil.rmtree("repository")
 
-                else:
-                    # extracts and clones the project.bundle from a project export
+                            git.Git().clone(f"project.bundle", f"repository")
+                            self.log_file.write(f"Repository cloned: {repository_name}\n")
+
+                if not path_exists:
+                    # When exports don't exist
+                    self.log_file.write(f"Extracting project export: {export} from tarfile: {self.group_export_tarfile}\n")
+                    os.chdir(self.group_export_dir)
+                    GitlabExport.extract_zip(self.group_export_tarfile, export_path, self.group_export_dir)
                     os.chdir(full_path)
-                    if bundle_exists:
-                        print("project.bundle exists\n")
-                        git.Git().clone(f"project.bundle", f"repository")
-                        print(f"Repository cloned: {repository_name}\n")
-                    elif not bundle_exists and not repository_exists and export_exists:
-                        GitlabExport.extract_zip(export_file, "./project", self.group_export_dir)
-                        git.Git().clone(f"project.bundle", f"repository")
-                        print(f"Repository cloned: {repository_name}\n")
-                    else:
-                        print("in final else")
-                        os.chdir(self.group_export_dir)
-                        print(export_path)
-                        GitlabExport.extract_zip(self.group_export_tarfile, export_path, self.group_export_dir)
-                        os.chdir(full_path)
-                        GitlabExport.extract_zip(export_file, "./project", self.group_export_dir)
-                        git.Git().clone(f"project.bundle", f"repository")
-                        #GitlabExport.backup_group_export(self)
-
-            if not path_exists:
-                print(f"Extracting project export {export} from {self.group_export_tarfile}")
-                print(self.group_export_dir)
-                os.chdir(self.group_export_dir)
-                GitlabExport.extract_zip(self.group_export_tarfile, export_path, self.group_export_dir)
-                GitlabExport.backup_group_export(self)
+                    GitlabExport.extract_zip(export_file, "./project", self.group_export_dir)
+                    git.Git().clone(f"project.bundle", f"repository")
+                    self.log_file.write(f"Repository cloned: {repository_name}\n")
+            
+            self.log_file.close()
+        except OSError as e:
+            print(f"Gitlab group project export from tarfile: {self.group_export_tarfile} FAILED\nERROR: {e}")
+            self.log_file.write(f"\nUnable to backup Gitlab export\nError: {e}\n\n")
+            self.log_file.close()
+            sys.exit(1)

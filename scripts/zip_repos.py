@@ -35,11 +35,11 @@ class ZipRepositories:
 
             if len(file_list[0]) > self.zip_storage_days:
                 os.remove(os.path.abspath(oldest_backup))
-                time.sleep(0.1)
 
             for files in os.listdir(path_in):
                 if files.lower().endswith(file_type.lower()):
                     file_list_modified.append(files)
+                    
             if len(file_list_modified) > self.zip_storage_days:
                 ZipRepositories.remove_files_past_days(self, path_in, file_type)
 

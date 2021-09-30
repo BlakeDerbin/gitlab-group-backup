@@ -38,7 +38,7 @@ if __name__ == '__main__':
                 (config['backup']['zip_export_directory'], parent_path)
                 [config['backup']['zip_export_directory'] is None]
                 )[user_args.export is None]
-    zip_storage_days = (user_args.period, config['backup']['zip_storage_days'])[user_args.period is None]
+    zip_storage_days = (user_args.period, config['backup']['zip_storage'])[user_args.period is None]
 
     # gitlab group project export
     enable_gitlab_export = (config['gitlab_export']['enable'], False)[config['gitlab_export']['enable'] is None]
@@ -83,7 +83,8 @@ if __name__ == '__main__':
             func(path)
         else:
             raise
-    
+
+    # Handles gitlab backups from group_id
     if enable_gitlab_backup:
         for group in group_ids:
             gitlab_backup = gitlab.GitlabBackup(auth_token, group.strip(), api_version, api_url, log_file_path)
@@ -111,6 +112,11 @@ if __name__ == '__main__':
 
             remove_backup_directory(backup_path, log_file_path, remove_repo_dir)
 
+            print(f"Gitlab backup for group: {group_name} SUCESSFUL\n")
+
+    # Handles group backups from gitlab group export of projects
     if enable_gitlab_export:
         gitlab_export = gitlab.GitlabExport(gitlab_export_dir, gitlab_export_tar, log_file_path)
         gitlab_export.backup_group_export()
+        
+        print(f"Gitlab group project export from tarfile: {gitlab_export_tar} SUCCESFUL\n")
