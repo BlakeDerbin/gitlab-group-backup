@@ -20,14 +20,15 @@ user_args = parser.parse_args()
 if __name__ == '__main__':
     config = config.config_yaml()
 
+    # gitlab clone group projects
+    enable_gitlab_backup = (config['gitlab']['enable'], False)[config['gitlab']['enable'] is None]
     auth_token = (user_args.token, config['gitlab']['auth_token'])[user_args.token is None]
     group_ids = (user_args.group, config['gitlab']['group_ids'])[user_args.group is None].split(',')
     api_version = (user_args.apiversion, config['gitlab']['api_version'])[user_args.apiversion is None]
     api_url = config['gitlab']['api_url']
     log_file_path = (config['backup']['logfile_directory'], f'{Path.cwd}/backup_log.txt')[config['backup']['logfile_directory'] is None]
     remove_repo_dir = (user_args.remove, config['backup']['remove_directory'])[user_args.remove is False]
-    test = config['backup']['remove_directory']
-
+    
     parent_path = (user_args.directory,
                    (config['backup']['directory'], Path.cwd())
                    [config['backup']['directory'] is None]
@@ -38,6 +39,12 @@ if __name__ == '__main__':
                 [config['backup']['zip_export_directory'] is None]
                 )[user_args.export is None]
     zip_storage_days = (user_args.period, config['backup']['zip_storage_days'])[user_args.period is None]
+
+    # gitlab group project export
+    enable_gitlab_export = (config['gitlab_export']['enable'], False)[config['gitlab_export']['enable'] is None]
+    gitlab_export_dir = config['gitlab_export']['export_directory']
+    gitlab_export_tar = config['gitlab_export']['export_tarfile_path']
+
 
     def create_backup_directory(dir_in):
         # Creates backup directory
@@ -76,29 +83,34 @@ if __name__ == '__main__':
             func(path)
         else:
             raise
+    
+    if enable_gitlab_backup:
+        for group in group_ids:
+            gitlab_backup = gitlab.GitlabBackup(auth_token, group.strip(), api_version, api_url, log_file_path)
+            group_projects, group_name = gitlab_backup.fetch_group_projects()
 
-    for group in group_ids:
-        gitlab_backup = gitlab.GitlabBackup(auth_token, group.strip(), api_version, api_url, log_file_path)
-        group_projects, group_name = gitlab_backup.fetch_group_projects()
+            zip_filename = f'gitlab_{group_name.lower()}'
+            backup_dir_name = f'gitlab_{group_name.lower()}_backups'
+            backup_path = os.path.join(parent_path, backup_dir_name)
 
-        zip_filename = f'gitlab_{group_name.lower()}'
-        backup_dir_name = f'gitlab_{group_name.lower()}_backups'
-        backup_path = os.path.join(parent_path, backup_dir_name)
+            create_backup_directory(backup_path)
 
-        create_backup_directory(backup_path)
+            gitlab_backup.backup_group_repositories(backup_path, group_projects)
 
-        gitlab_backup.backup_group_repositories(backup_path, group_projects)
+            # handles zipping gitlab projects
+            gitlab_zip = zip_repos.ZipRepositories(
+                zip_filename,
+                generate_zip,
+                zip_path,
+                zip_storage_days,
+                log_file_path,
+                backup_path,
+                parent_path
+            )
+            gitlab_zip.backup_group_projects_to_tar()
 
-        # handles zipping gitlab projects
-        gitlab_zip = zip_repos.ZipRepositories(
-            zip_filename,
-            generate_zip,
-            zip_path,
-            zip_storage_days,
-            log_file_path,
-            backup_path,
-            parent_path
-        )
-        gitlab_zip.backup_group_projects_to_tar()
+            remove_backup_directory(backup_path, log_file_path, remove_repo_dir)
 
-        remove_backup_directory(backup_path, log_file_path, remove_repo_dir)
+    if enable_gitlab_export:
+        gitlab_export = gitlab.GitlabExport(gitlab_export_dir, gitlab_export_tar, log_file_path)
+        gitlab_export.backup_group_export()

@@ -9,8 +9,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-dir_in = '/mnt/c/Users/derbinb/source/gitlab-group-backup'
-
 class export_project_bundle():
     def __init__(self, export_dir):
         self.export_dir = export_dir
@@ -32,7 +30,7 @@ class export_project_bundle():
             project_tar.extractall(members=subdir_with_files)
 
     
-    def export_backup_projects(export_dir, group_zip):
+    def backup_group_export(export_dir, group_zip):
         os.chdir(export_dir)
         export_list = []
         group_export_tar = group_zip
@@ -48,7 +46,7 @@ class export_project_bundle():
                 export_file_path = export.rsplit("/", 1)
                 export_path = export_file_path[0]
                 export_file = export_file_path[1]
-                full_path = f"{dir_in}/{export_file_path[0]}"
+                full_path = f"{export_dir}/{export_file_path[0]}"
                 path_exists = os.path.exists(os.path.abspath(full_path))
 
                 repo = export.rsplit("/", 2)
@@ -63,7 +61,7 @@ class export_project_bundle():
                 export_exists = export_file.is_file()
                 print(f"full path: {full_path}\n")
                 print(f"path exists: {path_exists}\nrepo dir exists: {repository_exists}\nbundle exists: {bundle_exists}\nexport exists: {export_exists}\n")
-                
+
                 if path_exists:
                     os.chdir(full_path)      
                                   
@@ -110,10 +108,11 @@ class export_project_bundle():
                     print(full_path)
                     os.chdir(export_dir)
                     export_project_bundle.extract_zip(group_export_tar, export_path)
-                    #os.makedirs(full_path)
-                    export_project_bundle.export_backup_projects(export_dir, group_zip)
+                    export_project_bundle.backup_group_export(export_dir, group_zip)
 
 
-export_project_bundle(dir_in)
+#export_project_bundle(dir_in)
 #export_project_bundle.zip_projects(export_dir)
-export_project_bundle.export_backup_projects(dir_in, 'tar_backup.tgz')
+export_project_bundle.backup_group_export(
+    '/mnt/c/Users/derbinb/source/gitlab-group-backup', 
+    'tar_backup.tgz')
