@@ -1,6 +1,6 @@
 ﻿gitlab:
   # If you want to use multiple group_ids use the seperated by commas '1234, 12345'
-  enable: False
+  enable: True
   api_url: 'https://gitlab.com/api/'
   api_version: 'v4'
   auth_token: ''
@@ -8,7 +8,7 @@
 
 gitlab_export:
   # Intended to be used with a tarfile of gitlab project export tarfiles
-  enable: True
+  enable: False
   export_directory: '/home/user/gitlab_export_backups'
   export_tarfile_path: '/home/user/tar_backup.tgz'
   
@@ -25,5 +25,5 @@ backup:
   generate_zip_export: True
   zip_export_directory: '/home/user'
   # Set this to the number of zip files you wish to store
-  # If the amount of zips go past this number then the zips get deleted older to newest (based on date appended in the zip file name)
+  # If the amount of zips go past this number then the zips get deleted oldesst to newest (based on date appended in the zip file name)
   zip_storage: 30
