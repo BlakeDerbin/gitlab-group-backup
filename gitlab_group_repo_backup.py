@@ -4,10 +4,12 @@ import stat
 import os
 import shutil
 import argparse
+from datetime import datetime
 from pathlib import Path
 from scripts import gitlab, config, zip_repos
 
-parser = argparse.ArgumentParser(description="This script will clone projects from a group and its subgroups from Gitlab")
+parser = argparse.ArgumentParser(
+    description="This script will clone projects from a group and its subgroups from Gitlab")
 parser.add_argument('-t', '--token', type=str, help='Gitlab API token')
 parser.add_argument('-g', '--group', type=int, help='Gitlab group ID')
 parser.add_argument('-d', '--directory', type=str, help='Backup directory path for the Gitlab group (OPTIONAL)')
@@ -26,9 +28,10 @@ if __name__ == '__main__':
     group_ids = (user_args.group, config['gitlab']['group_ids'])[user_args.group is None].split(',')
     api_version = (user_args.apiversion, config['gitlab']['api_version'])[user_args.apiversion is None]
     api_url = config['gitlab']['api_url']
-    log_file_path = (config['backup']['logfile_directory'], f'{Path.cwd}/backup_log.txt')[config['backup']['logfile_directory'] is None]
+    log_file_path = (config['backup']['logfile_directory'], f'{Path.cwd}/backup_log.txt')[
+        config['backup']['logfile_directory'] is None]
     remove_repo_dir = (user_args.remove, config['backup']['remove_directory'])[user_args.remove is False]
-    
+
     parent_path = (user_args.directory,
                    (config['backup']['directory'], Path.cwd())
                    [config['backup']['directory'] is None]
@@ -63,6 +66,7 @@ if __name__ == '__main__':
             log_file.close()
             sys.exit(1)
 
+
     def remove_backup_directory(backup_path_in, logfile_path_in, remove_dir=False):
         # Removes backup directory when the flag -r is used
         try:
@@ -75,6 +79,7 @@ if __name__ == '__main__':
             log_file.write(f"Unable to remove backup directory: {backup_path_in}\nError: {e}\n")
             log_file.close()
 
+
     def handle_remove_readonly(func, path, exc):
         # Handles removing directory if errors occur
         excvalue = exc[1]
@@ -83,6 +88,7 @@ if __name__ == '__main__':
             func(path)
         else:
             raise
+
 
     # Handles gitlab backups from group_id
     if enable_gitlab_backup:
@@ -112,11 +118,13 @@ if __name__ == '__main__':
 
             remove_backup_directory(backup_path, log_file_path, remove_repo_dir)
 
-            print(f"Gitlab backup for group: {group_name} SUCESSFUL\n")
+            date_now = datetime.now().strftime("%d/%m/%Y - %I:%M:%S %p")
+            print(f"[{date_now}] Gitlab backup for group: {group_name} SUCESSFUL\n")
 
     # Handles group backups from gitlab group export of projects
     if enable_gitlab_export:
         gitlab_export = gitlab.GitlabExport(gitlab_export_dir, gitlab_export_tar, log_file_path)
         gitlab_export.backup_group_export()
-        
-        print(f"Gitlab group project export from tarfile: {gitlab_export_tar} SUCCESFUL\n")
+
+        date_now = datetime.now().strftime("%d/%m/%Y - %I:%M:%S %p")
+        print(f"[{date_now}] Gitlab group project export from tarfile: {gitlab_export_tar} SUCCESFUL\n")
