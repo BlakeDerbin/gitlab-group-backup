@@ -1,17 +1,25 @@
 # Gitlab Group Backup Script
 
-Gitlab Group Backup Script is used to backup all project repositories from within a specified Gitlab group.
+Gitlab Group Backup Script is used as a solution to backing up Gitlab repositories in a group with 2FA enabled. Gitlab's API by default will ask for a 2FA code when getting an archive of a repository, it is also limited to 5 requests per minute for Gitlab.com users. This script uses the module gitpython to clone in new repositories and pull in changes for existing repositories. 
 
-This script will generate 2 outputs, the first will be the backup directory where the repositories are stored, this directory is also used to pull in changes for the repositories. The second output is a tarfile of the backup directory. Both of these outputs can have their own paths using the scripts flags below.
+This script also support exporting repositories from a Gitlab export, currently the format that works with this is a single tarfile of any gitlab exports you wish to extract the gitlab repositories from. If you want to use this you will need to toggle this on in the config.yaml.
 
+By default the script will generate 2 outputs when backing up a group:
+* backup directory ( stores repositories and pulls in changes to them from remote )
+* tarfile of the backup directory ( only generated once per day )
+
+Both of these outputs can have their own directories by either specifying them in the config.yaml or when running the script using the user args.
+
+## Requirements
 To use get started using this script you will need the following:
 
 * A Gitlab token with both api_read & read_repository access
 * Your group_id from your gitlab group
 * Pip modules: requests, gitpython
 
-## Running the script
+If you have Singularity installed you can also build the python_with_modules.def file for a container with everything needed to use the script.
 
+## Running the script
 There a 2 options for running this script, you can either use the arguments below when running the script or modify the config.yaml file to run the script without using arguments.
 
 Argument | Use
@@ -27,12 +35,4 @@ Argument | Use
 An example of how you would execute this script with arguments:
 ```
 python3 gitlab_group_repo_backup.py -t <API_TOKEN> -g <GROUP_ID> -d <BACKUP_DIRECTORY> -e <TARFILE_DIRECTORY> -v <API_VERSION>
-```
-
-## Using the BASH script
-
-This was created mainly to load modules before executing the script and is used in a simlar way to the python script, you will also need the python script in the same directory as the bash script:
-
-```
-bash gitlab_group_repo_backup.sh <API_TOKEN> <GROUP_ID> <BACKUP_DIRECTORY> (OPTIONAL)
 ```
