@@ -4,6 +4,7 @@ import stat
 import os
 import shutil
 import argparse
+import logging
 from datetime import datetime
 from pathlib import Path
 from scripts import gitlab, config, zip_repos
@@ -28,7 +29,7 @@ if __name__ == '__main__':
     group_ids = (user_args.group, config['gitlab']['group_ids'])[user_args.group is None].split(',')
     api_version = (user_args.apiversion, config['gitlab']['api_version'])[user_args.apiversion is None]
     api_url = config['gitlab']['api_url']
-    log_file_path = (config['backup']['logfile_directory'], f'{Path.cwd}/backup_log.txt')[
+    log_file_path = (config['backup']['logfile_directory'], f'{Path.cwd}/gitlab_backup.log')[
         config['backup']['logfile_directory'] is None]
     remove_repo_dir = (user_args.remove, config['backup']['remove_directory'])[user_args.remove is False]
 
@@ -48,6 +49,7 @@ if __name__ == '__main__':
     gitlab_export_dir = config['gitlab_export']['export_directory']
     gitlab_export_tar = config['gitlab_export']['export_tarfile_path']
 
+    logging.basicConfig(filename=log_file_path, level=logging.INFO)
 
     def create_backup_directory(dir_in):
         # Creates backup directory
@@ -56,28 +58,22 @@ if __name__ == '__main__':
 
             if not path_exists:
                 os.makedirs(dir_in)
-                log_file = open(log_file_path, 'a+')
-                log_file.write(f"\nCreated backup directory: {dir_in}\n")
-                log_file.close()
+                logging.info(f"Created backup directory: {dir_in}")
 
         except OSError as e:
-            log_file = open(log_file_path, 'a+')
-            log_file.write(f"Unable to create directory: {dir_in}\nError: {e}\n")
-            log_file.close()
+            logging.error(f"Unable to create directory: {dir_in}, error: {e}")
             sys.exit(1)
 
 
-    def remove_backup_directory(backup_path_in, logfile_path_in, remove_dir=False):
+    def remove_backup_directory(backup_path_in, remove_dir=False):
         # Removes backup directory when the flag -r is used
         try:
             if remove_dir:
                 shutil.rmtree(backup_path_in, ignore_errors=False, onerror=handle_remove_readonly)
-                log_file = open(logfile_path_in, 'a+')
-                log_file.write(f"Removed backup directory: {backup_path_in}\n")
+                logging.warning(f"Removed backup directory: {backup_path_in}")
+
         except OSError as e:
-            log_file = open(logfile_path_in, 'a+')
-            log_file.write(f"Unable to remove backup directory: {backup_path_in}\nError: {e}\n")
-            log_file.close()
+            logging.info(f"Unable to remove backup directory: {backup_path_in} error: {e}")
 
 
     def handle_remove_readonly(func, path, exc):
@@ -93,7 +89,7 @@ if __name__ == '__main__':
     # Handles gitlab backups from group_id
     if enable_gitlab_backup:
         for group in group_ids:
-            gitlab_backup = gitlab.GitlabBackup(auth_token, group.strip(), api_version, api_url, log_file_path)
+            gitlab_backup = gitlab.GitlabBackup(auth_token, group.strip(), api_version, api_url)
             group_projects, group_name = gitlab_backup.fetch_group_projects()
 
             zip_filename = f'gitlab_{group_name.lower()}'
@@ -110,21 +106,20 @@ if __name__ == '__main__':
                 generate_zip,
                 zip_path,
                 zip_storage_days,
-                log_file_path,
                 backup_path,
                 parent_path
             )
             gitlab_zip.backup_group_projects_to_tar()
 
-            remove_backup_directory(backup_path, log_file_path, remove_repo_dir)
+            remove_backup_directory(backup_path, remove_repo_dir)
 
-            date_now = datetime.now().strftime("%d/%m/%Y - %I:%M:%S %p")
-            print(f"[{date_now}] Gitlab backup for group: {group_name} SUCESSFUL\n")
+            logging.info(f"Gitlab backup for group: {group_name} SUCESSFUL\n")
+            print(f"Gitlab backup for group: {group_name} SUCESSFUL\n")
 
     # Handles group backups from gitlab group export of projects
     if enable_gitlab_export:
-        gitlab_export = gitlab.GitlabExport(gitlab_export_dir, gitlab_export_tar, log_file_path)
+        gitlab_export = gitlab.GitlabExport(gitlab_export_dir, gitlab_export_tar)
         gitlab_export.backup_group_export()
 
-        date_now = datetime.now().strftime("%d/%m/%Y - %I:%M:%S %p")
-        print(f"[{date_now}] Gitlab group project export from tarfile: {gitlab_export_tar} SUCCESFUL\n")
+        logging.info(f"Gitlab group project export from tarfile: {gitlab_export_tar} SUCCESFUL\n")
+        print(f"Gitlab group project export from tarfile: {gitlab_export_tar} SUCCESFUL\n")
