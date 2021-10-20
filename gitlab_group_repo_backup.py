@@ -42,35 +42,45 @@ if __name__ == '__main__':
                 (config['backup']['zip_export_directory'], parent_path)
                 [config['backup']['zip_export_directory'] is None]
                 )[user_args.export is None]
-    zip_storage_days = (user_args.period, config['backup']['zip_storage'])[user_args.period is None]
+    zip_storage_count = (user_args.period, config['backup']['zip_storage'])[user_args.period is None]
 
     # gitlab group project export
     enable_gitlab_export = (config['gitlab_export']['enable'], False)[config['gitlab_export']['enable'] is None]
     gitlab_export_dir = config['gitlab_export']['export_directory']
     gitlab_export_tar = config['gitlab_export']['export_tarfile_path']
+    
+    try:
+        # Makes logfile directory if it doesn't exist
+        if os.path.exists(log_file_path):
+            logging.basicConfig(filename=log_file_path, level=logging.INFO)
+        else:
+            logfile_dir = log_file_path.rsplit("/", 1)
+            os.makedirs(logfile_dir[0])
+            logging.basicConfig(filename=log_file_path, level=logging.INFO)
+    except OSError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
-    logging.basicConfig(filename=log_file_path, level=logging.INFO)
-
-    def create_backup_directory(dir_in):
-        # Creates backup directory
+    def create_directory(dir_in):
+        # Creates directory
         try:
             path_exists = os.path.exists(dir_in)
 
             if not path_exists:
                 os.makedirs(dir_in)
-                logging.info(f"Created backup directory: {dir_in}")
+                logging.info(f"Created directory: {dir_in}")
 
         except OSError as e:
             logging.error(f"Unable to create directory: {dir_in}, error: {e}")
             sys.exit(1)
 
 
-    def remove_backup_directory(backup_path_in, remove_dir=False):
+    def remove_directory(backup_path_in, remove_dir=False):
         # Removes backup directory when the flag -r is used
         try:
             if remove_dir:
                 shutil.rmtree(backup_path_in, ignore_errors=False, onerror=handle_remove_readonly)
-                logging.warning(f"Removed backup directory: {backup_path_in}")
+                logging.warning(f"Removed directory: {backup_path_in}")
 
         except OSError as e:
             logging.info(f"Unable to remove backup directory: {backup_path_in} error: {e}")
@@ -96,7 +106,7 @@ if __name__ == '__main__':
             backup_dir_name = f'gitlab_{group_name.lower()}_backups'
             backup_path = os.path.join(parent_path, backup_dir_name)
 
-            create_backup_directory(backup_path)
+            create_directory(backup_path)
 
             gitlab_backup.backup_group_repositories(backup_path, group_projects)
 
@@ -105,13 +115,13 @@ if __name__ == '__main__':
                 zip_filename,
                 generate_zip,
                 zip_path,
-                zip_storage_days,
+                zip_storage_count,
                 backup_path,
                 parent_path
             )
             gitlab_zip.backup_group_projects_to_tar()
 
-            remove_backup_directory(backup_path, remove_repo_dir)
+            remove_directory(backup_path, remove_repo_dir)
 
             logging.info(f"Gitlab backup for group: {group_name} SUCESSFUL\n")
             print(f"Gitlab backup for group: {group_name} SUCESSFUL\n")
